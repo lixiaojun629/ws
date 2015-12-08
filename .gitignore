@@ -1,0 +1,9 @@
+node_modules
+build
+.tmp
+bower_components
+config.json
+*.tgz
+*.log
+.idea
+mockup
