@@ -1,0 +1,23 @@
+{
+    "pre": {
+        "app_port":3001,
+        "redis_store":{
+            "host": "127.0.0.1",
+            "port": 6379
+        }
+    },
+    "development": {
+        "app_port":3001,
+        "redis_store":{
+            "host": "127.0.0.1",
+            "port": 6379
+        }
+    },
+    "production": {
+        "app_port":3001,
+        "redis_store":{
+            "host": "172.17.1.31",
+            "port": 6379
+        }
+    }
+}
