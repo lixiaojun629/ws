@@ -23,6 +23,6 @@ app.get('/', function(req, res){
     res.send('<h1>Welcome WebSocket Server</h1>');
 });
 
-http.listen(app.get('port'), function(){
-    console.log('listening on *:3000');
+var server = http.listen(app.get('port'), function(){
+    console.log('WebSocket server listening on port :' + server.address().port);
 });
