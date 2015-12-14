@@ -1,23 +1,22 @@
 {
     "pre": {
-        "app_port":3001,
-        "redis_store":{
-            "host": "127.0.0.1",
-            "port": 6379
-        }
+        "app_port":3001
     },
     "development": {
         "app_port":3001,
-        "redis_store":{
-            "host": "127.0.0.1",
-            "port": 6379
+        "server":"http://socket.frontend.ucloudadmin.com",
+        "rabbit_store":{
+            "addresses":"127.0.0.1:5025,127.0.0.1:8080,127.0.0.1:4202",
+            "username":"",
+            "password":""
         }
     },
     "production": {
         "app_port":3001,
-        "redis_store":{
-            "host": "172.17.1.31",
-            "port": 6379
+        "rabbit_store":{
+            "addresses":"127.0.0.1:5025,127.0.0.1:8080,127.0.0.1:4202",
+             "username":"",
+             "password":""
         }
     }
 }
