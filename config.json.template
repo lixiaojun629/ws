@@ -3,18 +3,21 @@
         "app_port":3001
     },
     "development": {
-        "app_port":3001,
+        "app_port":3325,
         "server":"http://socket.frontend.ucloudadmin.com",
+        "api_domain":"http://api.pre.ucloudadmin.com",
         "rabbit_store":{
-            "addresses":"127.0.0.1:5025,127.0.0.1:8080,127.0.0.1:4202",
+            "addresses":"127.0.0.0:5672,172.16.2.100:5672,127.0.0.1:5672",
             "username":"",
             "password":""
         }
     },
     "production": {
         "app_port":3001,
+        "server":"http://socket.frontend.ucloudadmin.com",
+        "api_domain":"http://api.pre.ucloudadmin.com",
         "rabbit_store":{
-            "addresses":"127.0.0.1:5025,127.0.0.1:8080,127.0.0.1:4202",
+            "addresses":"127.0.0.0:5672,172.16.2.100:5672,127.0.0.1:5672",
              "username":"",
              "password":""
         }

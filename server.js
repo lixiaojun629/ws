@@ -5,14 +5,15 @@ var path = require('path');
 var express = require('express');
 var app = express();
 
-//创建http，ws链接
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
-
 //获取config 配置文件
 var config = GLOBAL.config = require("./config.json")[app.get("env")];
 var appId = GLOBAL.appId = process.argv[2] || 0;
+GLOBAL.API_PATH = config.api_domain;
 
+
+//创建http，ws链接
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 var socket = require('./lib/socket.js');
 
 //设置环境变量
@@ -20,6 +21,16 @@ app.set('port', config.app_port);
 app.get('/', function(req, res){
     res.send('<h1>Welcome WebSocket Server</h1>');
 });
+
+//app.all("*",function(req, res, next){
+//    res.setHeader("Access-Control-Allow-Origin","*");
+//    res.setHeader("Access-Control-Allow-Methods","POST, GET, PUT, DELETE, OPTIONS");
+//    res.setHeader("Access-Control-Allow-Credentials",true);
+//    res.setHeader("Access-Control-Max-Age",'86400'); // 24 hours
+//    res.setHeader("Access-Control-Allow-Headers","Set-Cookie, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Access-Control-Allow-Origin, X-HTTP-Method-Override, Authorization");
+//    next();
+//});
+
 
 io.on('connection',function(socket){
     console.log('SocketIO connection success'+socket.id+":connection "+appId);
