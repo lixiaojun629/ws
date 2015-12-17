@@ -71,8 +71,19 @@ io.on('connection',function(i){socket(i,io);});
 //    });
 //});
 var producer = require("./lib/producer.js");
-producer("broadcast.ddd",{a:'sss'});
-producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+setTimeout(function(){
+    producer("broadcast.ddd",{a:'sss'});
+    producer("broadcast.ddd",{a:'sss'});
+    producer("broadcast.ddd",{a:'sss'});
+    producer("broadcast.ddd",{a:'sss'});
+    producer("broadcast.ddd",{a:'sss'});
+    producer("single.dasd",{email:'irene.wang@ucloud.cn'});
+    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+},5000)
+
 
 io.use(auth);
 
