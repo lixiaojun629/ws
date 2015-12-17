@@ -13,7 +13,7 @@ var api_domain = GLOBAL.API_PATH = config.api_domain;
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var auth = require('./lib/auth.js');
-var socket = require('./lib/socket.js');
+//var socket = require('./lib/socket.js');
 
 //设置环境变量
 app.set('port', config.app_port);
@@ -35,14 +35,43 @@ app.all("*",function(req, res, next){
 *
 */
 
-io.on('connection',function(i){socket(i,io);});
+//io.on('connection',function(i){socket(i,io);});
+var consumer = require("./lib/consumer.js")();
+var logger=require('./lib/logger.js').logger("socket");
+io.on('connection',function(socket){
+
+    function broadcastHandle(message){
+        logger.info('broadcast : ============================ : '+JSON.stringify(message));
+        logger.info(socket.id +' : ===============================================================================================================');
+        io.emit('message',JSON.stringify(message));
+    }
+    //广播消息消费者
+    consumer.bind('broadcast','broadcast.#',broadcastHandle);
+
+    function singleHandle(message){
+        var email = (message||{}).email;
+
+        if(!email || email != socket.user){
+            return;
+        }
+
+        logger.info('single : ============================ : '+JSON.stringify(message));
+        logger.info(socket.id+'===============================================================================================================');
+        socket.emit('message',JSON.stringify(message));
+    }
+
+    //定点消息消费者
+    consumer.bind('single','single.#',singleHandle);
+
+    logger.info('SocketIO connection success'+socket.id+":connection "+appId);
+
+    //关闭时清除连接
+    socket.on('disconnect',function(){
+        logger.info(socket.id+":disconnect "+appId);
+    });
+});
 
 io.use(auth);
-
-var producer = require("./lib/producer.js");
-producer("broadcast.ddd",{a:'sss'});
-producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-
 
 
 var server = http.listen(app.get('port'), function(){
