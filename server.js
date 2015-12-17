@@ -35,9 +35,15 @@ app.all("*",function(req, res, next){
 *
 */
 
-io.on('connection',socket);
+io.on('connection',function(i){socket(i,io);});
 
 io.use(auth);
+
+var producer = require("./lib/producer.js");
+producer("broadcast.ddd",{a:'sss'});
+producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+
+
 
 var server = http.listen(app.get('port'), function(){
     console.log('WebSocket server listening on port :' + server.address().port);
