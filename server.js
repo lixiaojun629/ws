@@ -36,53 +36,6 @@ app.all("*",function(req, res, next){
 */
 
 io.on('connection',function(i){socket(i,io);});
-//var consumer = require("./lib/consumer.js")();
-//var logger=require('./lib/logger.js').logger("socket");
-//io.on('connection',function(socket){
-//
-//    function broadcastHandle(message){
-//        logger.info('broadcast : ============================ : '+JSON.stringify(message));
-//        logger.info(socket.id +' : ===============================================================================================================');
-//        io.emit('message',JSON.stringify(message));
-//    }
-//    //广播消息消费者
-//    consumer.bind('broadcast','broadcast.#',broadcastHandle);
-//
-//    function singleHandle(message){
-//        var email = (message||{}).email;
-//
-//        if(!email || email != socket.user){
-//            return;
-//        }
-//
-//        logger.info('single : ============================ : '+JSON.stringify(message));
-//        logger.info(socket.id+'===============================================================================================================');
-//        socket.emit('message',JSON.stringify(message));
-//    }
-//
-//    //定点消息消费者
-//    consumer.bind('single','single.#',singleHandle);
-//
-//    logger.info('SocketIO connection success'+socket.id+":connection "+appId);
-//
-//    //关闭时清除连接
-//    socket.on('disconnect',function(){
-//        logger.info(socket.id+":disconnect "+appId);
-//    });
-//});
-var producer = require("./lib/producer.js");
-setTimeout(function(){
-    producer("broadcast.ddd",{a:'sss'});
-    producer("broadcast.ddd",{a:'sss'});
-    producer("broadcast.ddd",{a:'sss'});
-    producer("broadcast.ddd",{a:'sss'});
-    producer("broadcast.ddd",{a:'sss'});
-    producer("single.dasd",{email:'irene.wang@ucloud.cn'});
-    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-    producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-},5000)
 
 
 io.use(auth);
