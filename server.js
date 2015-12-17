@@ -36,7 +36,7 @@ app.all("*",function(req, res, next){
 */
 
 var consumer = require("./lib/consumer.js")();
-var producer = require("./producer.js");
+var producer = require("./lib/producer.js");
 var logger=require('./lib/logger.js').logger("socket");
 
 io.on('connection',function(socket){
