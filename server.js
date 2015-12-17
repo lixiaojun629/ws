@@ -36,11 +36,27 @@ app.all("*",function(req, res, next){
 *
 */
 
-
-
 io.on('connection',socket);
 
 io.use(auth);
+
+
+function sendHandle(){
+    var i = 0;
+    var time;
+    function s(){
+        time && clearTimeout(time);
+        if(i>=3) return;
+        producer("broadcast.ddd",{a:'sss'});
+        producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
+        i++;
+        time = setTimeout(s,1000);
+    }
+    s();
+}
+var producer = require("./lib/producer.js");
+setTimeout(sendHandle,5000)
+
 
 var server = http.listen(app.get('port'), function(){
     console.log('WebSocket server listening on port :' + server.address().port);
