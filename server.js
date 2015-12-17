@@ -36,9 +36,15 @@ app.all("*",function(req, res, next){
 */
 
 var consumer = require("./lib/consumer.js")();
+var producer = require("./lib/producer.js");
 var logger=require('./lib/logger.js').logger("socket");
-io.on('connection',function(socket){
 
+io.on('connection',function(socket){
+    function broadcastHandle(message){
+        logger.info('broadcast : ============================ : '+JSON.stringify(message));
+        logger.info(socket.id +' : ===============================================================================================================');
+        io.emit('message',JSON.stringify(message));
+    }
     function singleHandle(message){
         var email = (message||{}).email;
 
@@ -50,18 +56,15 @@ io.on('connection',function(socket){
         logger.info(socket.id+'===============================================================================================================');
         socket.emit('message',JSON.stringify(message));
     }
-
-    //定点消息消费者
-    consumer.bind('single','single.#',singleHandle);
+    function consumerHandle(){
+        //广播消息消费者
+        consumer.bind('broadcast','broadcast.#',broadcastHandle);
+        //定点消息消费者
+        consumer.bind('single','single.#',singleHandle);
+    }
+    consumerHandle();
     console.log('SocketIO connection success'+socket.id+":connection "+appId);
 });
-function broadcastHandle(message){
-    logger.info('broadcast : ============================ : '+JSON.stringify(message));
-    //logger.info(socket.id +' : ===============================================================================================================');
-    io.emit('message',JSON.stringify(message));
-}
-//广播消息消费者
-consumer.bind('broadcast','broadcast.#',broadcastHandle);
 io.use(socket);
 
 var server = http.listen(app.get('port'), function(){
