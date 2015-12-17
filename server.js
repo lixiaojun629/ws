@@ -55,7 +55,7 @@ function sendHandle(){
     s();
 }
 var producer = require("./lib/producer.js");
-setTimeout(sendHandle,5000)
+setTimeout(sendHandle,50000)
 
 
 var server = http.listen(app.get('port'), function(){
