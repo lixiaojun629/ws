@@ -37,6 +37,7 @@ app.all("*",function(req, res, next){
 
 var consumer = require("./lib/consumer.js")();
 
+var logger=require('./logger.js').logger("socket");
 io.on('connection',function(socket){
     function broadcastHandle(message){
         logger.info('broadcast : ============================ : '+JSON.stringify(message));
