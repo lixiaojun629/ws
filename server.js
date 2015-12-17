@@ -36,9 +36,25 @@ app.all("*",function(req, res, next){
 */
 
 var consumer = require("./lib/consumer.js")();
+var producer = require("./producer.js");
+var logger=require('./lib/logger.js').logger("socket");
 
-var logger=require('./logger.js').logger("socket");
 io.on('connection',function(socket){
+
+    function sendHandle(){
+        var i = 0;
+        var time;
+        function s(){
+            time && clearTimeout(time);
+            if(i>=3) return;
+            producer("broadcast."+i,{i:i});
+            producer("single."+i,{email:'wangjianliang@ucloud.cn',i:i});
+            i++;
+            time = setTimeout(s,1000);
+        }
+        s();
+    }
+
     function broadcastHandle(message){
         logger.info('broadcast : ============================ : '+JSON.stringify(message));
         logger.info(socket.id +' : ===============================================================================================================');
@@ -63,6 +79,7 @@ io.on('connection',function(socket){
     }
     consumerHandle();
     console.log('SocketIO connection success'+socket.id+":connection "+appId);
+    sendHandle();
 });
 io.use(socket);
 
