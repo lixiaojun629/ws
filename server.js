@@ -13,7 +13,7 @@ var api_domain = GLOBAL.API_PATH = config.api_domain;
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var auth = require('./lib/auth.js');
-var socket = require('./lib/socket.js');
+//var socket = require('./lib/socket.js');
 
 //设置环境变量
 app.set('port', config.app_port);
