@@ -42,6 +42,15 @@ var logger=require('./lib/logger.js').logger("socket");
 
 io.on('connection',function(socket){
 
+
+    function broadcastHandle(message){
+        logger.info('broadcast : ============================ : '+JSON.stringify(message));
+        logger.info(socket.id +' : ===============================================================================================================');
+        io.emit('message',JSON.stringify(message));
+    }
+    //广播消息消费者
+    var broadcast = consumer('broadcast','broadcast.#',broadcastHandle);
+
     function singleHandle(message){
         var email = (message||{}).email;
         if(!email || email != socket.user){
@@ -52,7 +61,6 @@ io.on('connection',function(socket){
         logger.info(socket.id+'===============================================================================================================');
         socket.emit('message',JSON.stringify(message));
     }
-
     //定点消息消费者
     var single = consumer('single','single.#',singleHandle);
 
@@ -68,13 +76,6 @@ io.on('connection',function(socket){
 
 io.use(auth);
 
-function broadcastHandle(message){
-    logger.info('broadcast : ============================ : '+JSON.stringify(message));
-    //logger.info(socket.id +' : ===============================================================================================================');
-    io.emit('message',JSON.stringify(message));
-}
-//广播消息消费者
-var broadcast = consumer('broadcast','broadcast.#',broadcastHandle);
 
 
 var server = http.listen(app.get('port'), function(){
