@@ -13,6 +13,7 @@ var api_domain = GLOBAL.API_PATH = config.api_domain;
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var auth = require('./lib/auth.js');
+var socket = require('./lib/socket.js');
 
 //设置环境变量
 app.set('port', config.app_port);
@@ -35,42 +36,9 @@ app.all("*",function(req, res, next){
 *
 */
 
-var consumer = require("./lib/consumer.js")();
-var producer = require("./lib/producer.js");
-var logger=require('./lib/logger.js').logger("socket");
 
-io.on('connection',function(socket){
 
-    function broadcastHandle(message){
-        logger.info('broadcast : ============================ : '+JSON.stringify(message));
-        //logger.info(socket.id +' : ===============================================================================================================');
-        io.emit('message',JSON.stringify(message));
-    }
-    //广播消息消费者
-    consumer.bind('broadcast','broadcast.#',broadcastHandle);
-
-    function singleHandle(message){
-        var email = (message||{}).email;
-
-        if(!email || email != socket.user){
-            return;
-        }
-
-        logger.info('single : ============================ : '+JSON.stringify(message));
-        logger.info(socket.id+'===============================================================================================================');
-        socket.emit('message',JSON.stringify(message));
-    }
-
-    //定点消息消费者
-    consumer.bind('single','single.#',singleHandle);
-
-    console.log('SocketIO connection success'+socket.id+":connection "+appId);
-
-    //关闭时清除连接
-    socket.on('disconnect',function(){
-        logger.info(socket.id+":disconnect "+appId);
-    });
-});
+io.on('connection',socket);
 
 io.use(auth);
 
