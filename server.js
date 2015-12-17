@@ -40,22 +40,8 @@ io.on('connection',socket);
 io.use(auth);
 
 var producer = require("./lib/producer.js");
-
-function sendHandle(){
-    var i = 0;
-    var time;
-    function s(){
-        time && clearTimeout(time);
-        if(i>=3) return;
-        producer("broadcast.ddd",{a:'sss'});
-        producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
-        i++;
-        time = setTimeout(s,1000);
-    }
-    s();
-}
-
-setTimeout(sendHandle,50000)
+producer("broadcast.ddd",{a:'sss'});
+producer("single.dasd",{email:'wangjianliang@ucloud.cn'});
 
 
 var server = http.listen(app.get('port'), function(){
