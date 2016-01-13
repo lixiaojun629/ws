@@ -31,24 +31,26 @@ function rabbitConnectionHandle(){
     var auth = require('./lib/auth.js');
     io.use(auth);
     io.on('connection',function(socket){
-        var socket_map = simple_map.get(socket.user)['socket_map'] || {};
-        socket_map[socket.id] = {user:socket.user};
-        simple_map.set(socket.user,{
+        var socket_map = simple_map.get(socket.userEmail)['socket_map'] || {};
+        socket_map[socket.id] = {user:socket.userEmail};
+        simple_map.set(socket.userEmail,{
             socket_map:socket_map
         });
-        socketLogger.info(socket.user + ' : socket' + socket.id +'socketid : connection success');
+        socketLogger.info(socket.userEmail + ' : socket' + socket.id +'socketid : connection success');
         socket.on('disconnect',function(){
-            delete simple_map.get(socket.user)['socket_map'][socket.id];
+            delete simple_map.get(socket.userEmail)['socket_map'][socket.id];
             if(_.isEmpty(socket_map)){
-                simple_map.remove(socket.user);
+                simple_map.remove(socket.userEmail);
             }
             socketLogger.info(socket.id+":disconnect "+appId);
         });
     });
+
     consumer.bind(rabbitConnection,'broadcast','broadcast.#',function(message){
         io.emit('message',message);
         rabbitLogger.info(message);
     });
+
     consumer.bind(rabbitConnection,'single','single.#',function(message){
         var user = message.email;
         if(user){
