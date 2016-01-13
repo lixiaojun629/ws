@@ -13,10 +13,11 @@ function process(client) {
 		messageDao.save(message);
 	})
 }
-subscribe('my_channel').then(function(client){
+subscribe(['my_channel','my_channel1']).then(function(client){
 	process(client);
 	pubClient.publish('my_channel',JSON.stringify(message));
 });
+
 var message = {
 	//消息体,会推送到浏览器
 	body: {
