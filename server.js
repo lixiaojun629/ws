@@ -3,85 +3,74 @@
  */
 var _ = require('lodash');
 var express = require('express');
+var consumer = require('./lib/consumer')();
+var socketLogger = require('./lib/logger').logger("socket");
+var auth = require('./lib/auth.js');
+var subscribe = require('./lib/subscriber');
+var dao = require('./lib/dao.js');
+var messageDao =  dao.messageDao;
+var userConnDao = dao.userConnDao;
 var app = express();
+
 //获取config 配置文件
 var config = GLOBAL.config = require("./config.json")[app.get("env")];
 var appId = GLOBAL.appId = process.argv[2] || 0;
 var api_domain = GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
-var http = require('http').Server(app);
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+
+
 //设置环境变量
 app.set('port', config.app_port);
-app.get('/', function(req, res){
-    res.send('<h1>Welcome WebSocket Server</h1>');
+
+app.get('/', function (req, res) {
+	res.send('<h1>Welcome WebSocket Server</h1>');
 });
 
-var rabbit = require('./lib/rabbit.js');//全局消费者 所有的消息接收方
-var consumer = require('./lib/consumer.js')();
-var simple_map = require('./lib/simple_map.js')();
-var rabbitConnection = rabbit.connection();
-var rabbitLogger=require('./lib/logger.js').logger("rabbit");
-var socketLogger=require('./lib/logger.js').logger("socket");
+//校验用户登录态,绑定用户email到socket连接对象
+io.use(auth);
 
-rabbitLogger.info('RabbitMQ Consumer connection start');
+/**
+ * ws连接建立,把用户的ws连接id存放在redis相应的Set中
+ * ws连接断开,在用户的ws连接Set中删除此连接id,若Set为空,则删除Set
+ */
+io.on('connection', function (socket) {
+	console.log("sasddddddd");
+	var email = socket.userEmail;
+	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
+	userConnDao.save(email ,socket.id);
 
-function rabbitConnectionHandle(){
-    rabbitLogger.info('RabbitMQ Consumer connection success');
-    var io = require('socket.io')(http);
-    var auth = require('./lib/auth.js');
-    io.use(auth);
-    io.on('connection',function(socket){
-        var socket_map = simple_map.get(socket.userEmail)['socket_map'] || {};
-        socket_map[socket.id] = {user:socket.userEmail};
-        simple_map.set(socket.userEmail,{
-            socket_map:socket_map
-        });
-        socketLogger.info(socket.userEmail + ' : socket' + socket.id +'socketid : connection success');
-        socket.on('disconnect',function(){
-            delete simple_map.get(socket.userEmail)['socket_map'][socket.id];
-            if(_.isEmpty(socket_map)){
-                simple_map.remove(socket.userEmail);
-            }
-            socketLogger.info(socket.id+":disconnect "+appId);
-        });
-    });
+	console.log(io.sockets.sockets);
 
-    consumer.bind(rabbitConnection,'broadcast','broadcast.#',function(message){
-        io.emit('message',message);
-        rabbitLogger.info(message);
-    });
+	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
+	messageDao.getUserMessages(socket.userEmail).then(function(userMessages){
+		userMessages.forEach(function(message){
+			socket.emit('message',message);
+		})
+	});
 
-    consumer.bind(rabbitConnection,'single','single.#',function(message){
-        var user = message.email;
-        if(user){
-            var socket_map = simple_map.get(user)['socket_map'] || {};
-            _.each(io.sockets.sockets,function(socket){
-                if(socket_map[socket.id]){
-                    socket.emit('message',message);
-                }
-            });
-            rabbitLogger.info(message);
-        }
-    });
-}
-
-rabbitConnection.on('ready',rabbitConnectionHandle);
+	socket.on('disconnect', function () {
+		socketLogger.info(socket.id + ":disconnect " + appId);
+		userConnDao.remove(socket.userEmail,socket.id);
+	});
+});
 
 
+server.listen(app.get('port'), function () {
+	console.log('WebSocket server listening on port :' + server.address().port);
+	subscribe('test_channel').then(function(client){
+		client.on('message',function(channel,messageStr){
+			message = JSON.parse(messageStr);
+			if(message.userEmailList === 'ALL'){
 
+			}else{
+				message.userEmailList.forEach(function(email){
+					userConnDao.getAllUserConn(email).then(function(socketIds){
 
-var a = require('./lib/producer.js');
-setTimeout(function(){
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('broadcast.adasdasd',{'aaaa':'asdsd'})
-    a('single.adasdasd',{'email':'wangjianliang@ucloud.cn',aaaaaa:'sssssss'})
-},5000);
-
-
-var server = http.listen(app.get('port'), function(){
-    console.log('WebSocket server listening on port :' + server.address().port);
+					})
+				})
+			}
+		})
+	})
 });
