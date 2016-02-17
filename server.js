@@ -36,7 +36,6 @@ io.use(auth);
  * ws连接断开,在用户的ws连接Set中删除此连接id,若Set为空,则删除Set
  */
 io.on('connection', function (socket) {
-	console.log("sasddddddd");
 	var email = socket.userEmail;
 	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
 	userConnDao.save(email ,socket.id);
