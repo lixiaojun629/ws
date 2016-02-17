@@ -7,6 +7,7 @@ var consumer = require('./lib/consumer')();
 var socketLogger = require('./lib/logger').logger("socket");
 var auth = require('./lib/auth.js');
 var subscribe = require('./lib/subscriber');
+
 var dao = require('./lib/dao.js');
 var messageDao =  dao.messageDao;
 var userConnDao = dao.userConnDao;
@@ -14,6 +15,7 @@ var app = express();
 
 //获取config 配置文件
 var config = GLOBAL.config = require("./config.json")[app.get("env")];
+console.log(config);
 var appId = GLOBAL.appId = process.argv[2] || 0;
 var api_domain = GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
@@ -40,8 +42,6 @@ io.on('connection', function (socket) {
 	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
 	userConnDao.save(email ,socket.id);
 
-	console.log(io.sockets.sockets);
-
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
 	messageDao.getUserMessages(socket.userEmail).then(function(userMessages){
 		userMessages.forEach(function(message){
@@ -59,7 +59,9 @@ io.on('connection', function (socket) {
 server.listen(app.get('port'), function () {
 	console.log('WebSocket server listening on port :' + server.address().port);
 	subscribe('test_channel').then(function(client){
+        console.log('subscribe test_channel');
 		client.on('message',function(channel,messageStr){
+            console.log(messageStr);
 			message = JSON.parse(messageStr);
 			if(message.userEmailList === 'ALL'){
 
