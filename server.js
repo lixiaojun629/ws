@@ -12,12 +12,12 @@ var auth = require('./lib/auth.js');
 var subscribe = require('./lib/subscriber');
 
 var dao = require('./lib/dao.js');
-var messageDao =  dao.messageDao;
+var messageDao = dao.messageDao;
 var userConnDao = dao.userConnDao;
 
 //获取config 配置文件
 var appId = GLOBAL.appId = process.argv[2] || 0;
-var api_domain = GLOBAL.API_PATH = config.api_domain;
+GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
@@ -40,75 +40,77 @@ io.use(auth);
 io.on('connection', function (socket) {
 	var email = socket.UserEmail;
 	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
-	userConnDao.save(email ,socket.id);
+	userConnDao.save(email, socket.id);
 
-    socket.emit('message',socket.id);
+	socket.emit('message', socket.id);
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
-	messageDao.getUserMessages(socket).then(function(userMessages){
-		userMessages.forEach(function(message){
-			socket.emit('message',message.Body);
+	messageDao.getUserMessages(socket).then(function (userMessages) {
+		userMessages.forEach(function (message) {
+			socket.emit('message', message.Body);
 		})
 	});
 
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
-		userConnDao.remove(socket.UserEmail,socket.id);
+		userConnDao.remove(socket.UserEmail, socket.id);
 	});
 });
 
 
 server.listen(app.get('port'), function () {
 	socketLogger.info('WebSocket server listening on port :' + server.address().port);
-	subscribe('test_channel').then(function(client){
-        socketLogger.info('subscribe test_channel');
-		client.on('message',function(channel,messageStr){
-            socketLogger.info('receive message:',messageStr);
+	subscribe('test_channel').then(function (client) {
+		socketLogger.info('subscribe test_channel');
+		client.on('message', function (channel, messageStr) {
+			socketLogger.info('receive message:', messageStr);
 			message = JSON.parse(messageStr);
-            var nowTimeStamp = (Date.now()/1000).toFixed(0);
-            if(message.BeginTime > nowTimeStamp){
-                setTimeout(function(){ onMessage(message);}, (message.BeginTime - nowTimeStamp) * 1000);
-            }else {
-                onMessage(message);
-            }
+			var nowTimeStamp = (Date.now() / 1000).toFixed(0);
+			if (message.BeginTime > nowTimeStamp) {
+				setTimeout(function () {
+					onMessage(message);
+				}, (message.BeginTime - nowTimeStamp) * 1000);
+			} else {
+				onMessage(message);
+			}
 		})
 	})
 });
 
-function onMessage (message){
-    if(message.ExpireTime && message.ExpireTime > Date.now()/1000){
-        messageDao.save(JSON.stringify(message));
-    }
-    sendMessage(message);
+function onMessage(message) {
+	if (message.ExpireTime && message.ExpireTime > Date.now() / 1000) {
+		messageDao.save(JSON.stringify(message));
+	}
+	sendMessage(message);
 }
 
-function sendMessage(message){
-    var messageStr = JSON.stringify(message.Body);
-    var sockets = [];
+function sendMessage(message) {
+	var messageStr = JSON.stringify(message.Body);
+	var sockets = [];
 
-    if(message.SessionId){
-        sockets = io.sockets.sockets.filter(function(socket){
-            return message.SessionId === socket.id;
-        })
-    }
+	if (message.SessionId) {
+		sockets = io.sockets.sockets.filter(function (socket) {
+			return message.SessionId === socket.id;
+		})
+	}
 
-    if(message.UserEmail){
-        sockets = io.sockets.sockets.filter(function(socket){
-            return socket.UserEmail === socket.UserEmail;
-        });
-    }
+	if (message.UserEmail) {
+		sockets = io.sockets.sockets.filter(function (socket) {
+			return socket.UserEmail === socket.UserEmail;
+		});
+	}
 
-    if(message.CompanyId){
-        sockets = io.sockets.sockets.filter(function(socket){
-            return socket.CompanyId === socket.CompanyId;
-        });
-    }
+	if (message.CompanyId) {
+		sockets = io.sockets.sockets.filter(function (socket) {
+			return socket.CompanyId === socket.CompanyId;
+		});
+	}
 
-    if(message.AllUser === true){
-        io.emit('message',messageStr);
-    }
+	if (message.AllUser === true) {
+		io.emit(message.EventName, messageStr);
+	}
 
-    sockets.forEach(function(socket){
-        socket.emit('message',messageStr);
-    });
+	sockets.forEach(function (socket) {
+		socket.emit(message.EventName, messageStr);
+	});
 }
