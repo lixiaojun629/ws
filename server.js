@@ -1,8 +1,11 @@
 /**
  * Created by L on 2015/12/8.
  */
-var _ = require('lodash');
 var express = require('express');
+var app = express();
+var config = GLOBAL.config = require("./config.json")[app.get('env')];
+
+var _ = require('lodash');
 var consumer = require('./lib/consumer')();
 var socketLogger = require('./lib/logger').logger("socket");
 var auth = require('./lib/auth.js');
@@ -11,10 +14,8 @@ var subscribe = require('./lib/subscriber');
 var dao = require('./lib/dao.js');
 var messageDao =  dao.messageDao;
 var userConnDao = dao.userConnDao;
-var app = express();
 
 //获取config 配置文件
-var config = GLOBAL.config = require("./config.json")[app.get("env")];
 var appId = GLOBAL.appId = process.argv[2] || 0;
 var api_domain = GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
@@ -41,10 +42,12 @@ io.on('connection', function (socket) {
 	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
 	userConnDao.save(email ,socket.id);
 
+    socket.emit('message',socket.id);
+
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
-	messageDao.getUserMessages(socket.UserEmail).then(function(userMessages){
+	messageDao.getUserMessages(socket).then(function(userMessages){
 		userMessages.forEach(function(message){
-			socket.emit('message',message);
+			socket.emit('message',message.Body);
 		})
 	});
 
@@ -64,7 +67,7 @@ server.listen(app.get('port'), function () {
 			message = JSON.parse(messageStr);
             var nowTimeStamp = (Date.now()/1000).toFixed(0);
             if(message.BeginTime > nowTimeStamp){
-                setTimeout(onMessage, (message.BeginTime - nowTimeStamp) * 1000);
+                setTimeout(function(){ onMessage(message);}, (message.BeginTime - nowTimeStamp) * 1000);
             }else {
                 onMessage(message);
             }
