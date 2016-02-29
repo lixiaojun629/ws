@@ -12,6 +12,7 @@ var socketLogger = require('./lib/logger').logger("socket");
 var auth = require('./lib/auth');
 var subscribe = require('./lib/subscriber');
 
+var connCache = require('./lib/conn_cache');
 var dao = require('./lib/dao');
 var messageDao = dao.messageDao;
 var userConnDao = dao.userConnDao;
@@ -41,9 +42,10 @@ io.use(auth);
 io.on('connection', function (socket) {
 	var userId = socket.UserId;
 	socketLogger.info(userId + ' : socket' + socket.id + 'socketid : connection success');
-	userConnDao.save(userId, socket.id);
-
+    //把SocketId发送到客户端，作为SessionId
 	socket.emit('message', socket.id);
+    connCache.save(socket);
+
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
 	messageDao.getUserMessages(socket).then(function (userMessages) {
