@@ -1,4 +1,5 @@
 /**
+ *
  * Created by L on 2015/12/8.
  */
 var express = require('express');
@@ -8,10 +9,10 @@ var config = GLOBAL.config = require("./config.json")[app.get('env')];
 var _ = require('lodash');
 var consumer = require('./lib/consumer')();
 var socketLogger = require('./lib/logger').logger("socket");
-var auth = require('./lib/auth.js');
+var auth = require('./lib/auth');
 var subscribe = require('./lib/subscriber');
 
-var dao = require('./lib/dao.js');
+var dao = require('./lib/dao');
 var messageDao = dao.messageDao;
 var userConnDao = dao.userConnDao;
 
@@ -30,7 +31,7 @@ app.get('/', function (req, res) {
 	res.send('<h1>Welcome WebSocket Server</h1>');
 });
 
-//校验用户登录态,绑定用户email到socket连接对象
+//校验用户登录态,绑定用户Id到socket连接对象
 io.use(auth);
 
 /**
@@ -38,9 +39,9 @@ io.use(auth);
  * ws连接断开,在用户的ws连接Set中删除此连接id,若Set为空,则删除Set
  */
 io.on('connection', function (socket) {
-	var email = socket.UserEmail;
-	socketLogger.info(email + ' : socket' + socket.id + 'socketid : connection success');
-	userConnDao.save(email, socket.id);
+	var userId = socket.UserId;
+	socketLogger.info(userId + ' : socket' + socket.id + 'socketid : connection success');
+	userConnDao.save(userId, socket.id);
 
 	socket.emit('message', socket.id);
 
@@ -53,7 +54,7 @@ io.on('connection', function (socket) {
 
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
-		userConnDao.remove(socket.UserEmail, socket.id);
+		userConnDao.remove(socket.UserId, socket.id);
 	});
 });
 
@@ -61,7 +62,6 @@ io.on('connection', function (socket) {
 server.listen(app.get('port'), function () {
 	socketLogger.info('WebSocket server listening on port :' + server.address().port);
 	subscribe('test_channel').then(function (client) {
-		socketLogger.info('subscribe test_channel');
 		client.on('message', function (channel, messageStr) {
 			socketLogger.info('receive message:', messageStr);
 			message = JSON.parse(messageStr);
@@ -94,9 +94,9 @@ function sendMessage(message) {
 		})
 	}
 
-	if (message.UserEmail) {
+	if (message.UserId) {
 		sockets = io.sockets.sockets.filter(function (socket) {
-			return socket.UserEmail === socket.UserEmail;
+			return socket.UserId === socket.UserId;
 		});
 	}
 
