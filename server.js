@@ -48,7 +48,8 @@ io.on('connection', function (socket) {
 
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
-	messageDao.getUserMessages(socket).then(function (userMessages) {
+	messageDao.getConnMessages(socket).then(function (userMessages) {
+		console.log(userMessages);
 		userMessages.forEach(function (message) {
 			socket.emit('message', message.Body);
 		})
@@ -56,7 +57,7 @@ io.on('connection', function (socket) {
 
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
-		userConnDao.remove(socket.UserId, socket.id);
+		connCache.remove(socket);
 	});
 });
 
@@ -89,30 +90,16 @@ function onMessage(message) {
 function sendMessage(message) {
 	var messageStr = JSON.stringify(message.Body);
 	var sockets = [];
-
-	if (message.SessionId) {
-		sockets = io.sockets.sockets.filter(function (socket) {
-			return message.SessionId === socket.id;
-		})
-	}
-
-	if (message.UserId) {
-		sockets = io.sockets.sockets.filter(function (socket) {
-			return socket.UserId === socket.UserId;
-		});
-	}
-
-	if (message.CompanyId) {
-		sockets = io.sockets.sockets.filter(function (socket) {
-			return socket.CompanyId === socket.CompanyId;
-		});
-	}
-
 	if (message.AllUser === true) {
-		io.emit(message.EventName, messageStr);
+		io.emit(message.Action, messageStr);
+	}else if(message.SessionId){
+		sockets = [connCache.session[message.SessionId]];
+	}else if(message.UserId){
+		sockets = connCache.user[message.UserId];
+	}else if(message.CompanyId){
+		sockets = connCache.company[message.CompanyId];
 	}
-
 	sockets.forEach(function (socket) {
-		socket.emit(message.EventName, messageStr);
+		socket.emit(message.Action, messageStr);
 	});
 }
