@@ -14,7 +14,6 @@ var subscribe = require('./lib/subscriber');
 var connCache = require('./lib/conn_cache');
 var dao = require('./lib/dao');
 var messageDao = dao.messageDao;
-var userConnDao = dao.userConnDao;
 
 //获取config 配置文件
 var appId = GLOBAL.appId = process.argv[2] || 0;
@@ -22,6 +21,7 @@ GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+var getProjectIds = require('./lib/get_project_ids');
 
 
 //设置环境变量
@@ -33,6 +33,8 @@ app.get('/', function (req, res) {
 
 //校验用户登录态,绑定用户Id到socket连接对象
 io.use(auth);
+//获取用户参与项目ID列表
+io.use(getProjectIds);
 
 /**
  * ws连接建立,把用户的ws连接id存放在redis相应的Set中
@@ -41,9 +43,9 @@ io.use(auth);
 io.on('connection', function (socket) {
 	var userId = socket.UserId;
 	socketLogger.info(userId + ' : socket' + socket.id + 'socketid : connection success');
-    //把SocketId发送到客户端，作为SessionId
+	//把SocketId发送到客户端，作为SessionId
 	socket.emit('message', socket.id);
-    connCache.save(socket);
+	connCache.save(socket);
 
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
@@ -51,7 +53,9 @@ io.on('connection', function (socket) {
 		userMessages.forEach(function (message) {
 			socket.emit('message', message.Body);
 		})
-	},function(error){console.log(error);});
+	}, function (error) {
+		socketLogger.error(error);
+	});
 
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
@@ -90,11 +94,13 @@ function sendMessage(message) {
 	var sockets = [];
 	if (message.AllUser === true) {
 		io.emit(message.Action, messageStr);
-	}else if(message.SessionId){
+	} else if (message.SessionId) {
 		sockets = [connCache.session[message.SessionId]];
-	}else if(message.UserId){
+	} else if (message.UserId) {
 		sockets = connCache.user[message.UserId];
-	}else if(message.CompanyId){
+	} else if (message.ProjectId) {
+		sockets = connCache.project[message.ProjectId]	;
+	} else if (message.CompanyId) {
 		sockets = connCache.company[message.CompanyId];
 	}
 	sockets && sockets.forEach(function (socket) {
