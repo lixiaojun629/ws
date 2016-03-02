@@ -7,7 +7,6 @@ var app = express();
 var config = GLOBAL.config = require("./config.json")[app.get('env')];
 
 var _ = require('lodash');
-var consumer = require('./lib/consumer')();
 var socketLogger = require('./lib/logger').logger("socket");
 var auth = require('./lib/auth');
 var subscribe = require('./lib/subscriber');
@@ -49,11 +48,10 @@ io.on('connection', function (socket) {
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
 	messageDao.getConnMessages(socket).then(function (userMessages) {
-		console.log(userMessages);
 		userMessages.forEach(function (message) {
 			socket.emit('message', message.Body);
 		})
-	});
+	},function(error){console.log(error);});
 
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
@@ -82,7 +80,7 @@ server.listen(app.get('port'), function () {
 
 function onMessage(message) {
 	if (message.ExpireTime && message.ExpireTime > Date.now() / 1000) {
-		messageDao.save(JSON.stringify(message));
+		messageDao.save(message);
 	}
 	sendMessage(message);
 }
@@ -99,7 +97,7 @@ function sendMessage(message) {
 	}else if(message.CompanyId){
 		sockets = connCache.company[message.CompanyId];
 	}
-	sockets.forEach(function (socket) {
-		socket.emit(message.Action, messageStr);
+	sockets && sockets.forEach(function (socket) {
+		socket.emit("message", messageStr);
 	});
 }
