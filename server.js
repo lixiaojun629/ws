@@ -5,6 +5,9 @@
 var express = require('express');
 var app = express();
 var config = GLOBAL.config = require("./config.json")[app.get('env')];
+var server = require('http').Server(app);
+var WebSocketServer = require('ws').Server;
+var wss = new WebSocketServer({server: server});
 
 var _ = require('lodash');
 var socketLogger = require('./lib/logger').logger("socket");
@@ -19,8 +22,6 @@ var messageDao = dao.messageDao;
 var appId = GLOBAL.appId = process.argv[2] || 0;
 GLOBAL.API_PATH = config.api_domain;
 //创建http，ws链接
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
 var getProjectIds = require('./lib/get_project_ids');
 
 
@@ -32,19 +33,20 @@ app.get('/', function (req, res) {
 });
 
 //校验用户登录态,绑定用户Id到socket连接对象
-io.use(auth);
+app.use(auth);
 //获取用户参与项目ID列表
-io.use(getProjectIds);
+app.use(getProjectIds);
 
 /**
  * ws连接建立,把用户的ws连接id存放在redis相应的Set中
  * ws连接断开,在用户的ws连接Set中删除此连接id,若Set为空,则删除Set
  */
-io.on('connection', function (socket) {
+wss.on('connection', function (socket) {
 	var userId = socket.UserId;
 	socketLogger.info(userId + ' : socket' + socket.id + 'socketid : connection success');
 	//把SocketId发送到客户端，作为SessionId
-	socket.emit('message', socket.id);
+	socket.send('message', socket);
+
 	connCache.save(socket);
 
 
@@ -57,6 +59,7 @@ io.on('connection', function (socket) {
 		socketLogger.error(error);
 	});
 
+	console.log(socket);
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
 		connCache.remove(socket);
@@ -104,6 +107,6 @@ function sendMessage(message) {
 		sockets = connCache.company[message.CompanyId];
 	}
 	sockets && sockets.forEach(function (socket) {
-		socket.emit("message", messageStr);
+		socket.send("message", messageStr);
 	});
 }
