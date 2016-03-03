@@ -45,9 +45,25 @@ wss.on('connection', function (socket) {
 	var userId = socket.UserId;
 	socketLogger.info(userId + ' : socket' + socket.id + 'socketid : connection success');
 	//把SocketId发送到客户端，作为SessionId
-	socket.send('message', socket);
 
-	connCache.save(socket);
+    socket.on('open', function open() {
+        console.log('connected');
+        socket.send(Date.now().toString());
+    });
+
+    socket.on('close', function close() {
+        console.log('disconnected');
+    });
+
+    socket.on('message', function message(data, flags) {
+        console.log('Roundtrip time: ' + (Date.now() - parseInt(data)) + 'ms', flags);
+
+        setTimeout(function timeout() {
+            socket.send(Date.now().toString());
+        }, 500);
+    });
+
+	//connCache.save(socket);
 
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
@@ -59,7 +75,6 @@ wss.on('connection', function (socket) {
 		socketLogger.error(error);
 	});
 
-	console.log(socket);
 	socket.on('disconnect', function () {
 		socketLogger.info(socket.id + ":disconnect " + appId);
 		connCache.remove(socket);
