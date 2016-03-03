@@ -7,9 +7,6 @@ var http = require('http');
 var WebSocketServer = require('ws').Server;
 
 var config = require("./config.json");
-var app = express();
-config = config[app.get['env']];
-GLOBAL.config = config;
 
 var logger = require('./lib/logger').logger("socket");
 var auth = require('./lib/auth');
@@ -18,11 +15,12 @@ var cache = require('./lib/cache');
 var dao = require('./lib/dao');
 var Const = require('./lib/const');
 
+var app = express();
 var server = http.createServer(app);
 var wss = new WebSocketServer({server: server});
 var messageDao = dao.messageDao;
 
-
+config = config[app.get('env')];
 app.set('port', config.app_port);
 
 server.listen(app.get('port'), function () {

@@ -7,6 +7,9 @@
     "type": "git",
     "url": "git@gitlab.ucloudadmin.com:uweb/socket.git"
   },
+  "scripts": {
+    "dev": "NODE_ENV=development node server.js"
+  },
   "engines": {
     "node": ">=0.10.0"
   },
