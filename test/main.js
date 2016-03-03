@@ -3,8 +3,6 @@
  * Created by rilke on 16/1/13.
  */
 
-var pubClient = require('../lib/redis')();
-var subscribe = require('../lib/subscriber');
 var messageDao = require('../lib/dao');
 
 function process(client) {
