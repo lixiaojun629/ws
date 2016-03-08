@@ -29,11 +29,34 @@ server.listen(app.get('port'), function () {
     util.subscribe(Const.CHANNEL).then(function (client) {
         client.on('message', function (channel, messageStr) {
             logger.info('receive message:', messageStr);
-            message = JSON.parse(messageStr);
-            onMessage(message);
+            var rawMessage = JSON.parse(messageStr);
+            var messages;
+            if(rawMessage.SessionId){
+                messages = splitMessage(rawMessage,'SessionId');
+            }else if(rawMessage.UserId){
+                messages = splitMessage(rawMessage, 'UserId');
+            }else if(rawMessage.ProjectId){
+                messages = splitMessage(rawMessage, 'ProjectId');
+            }else if(rawMessage.CompanyId){
+                messages = splitMessage(rawMessage, 'CompanyId');
+            }else if(rawMessage.AllUser){
+                messages = [rawMessage];
+            }
+
+            messages.forEach(function(message){
+                onMessage(message);
+            });
         })
     });
 });
+
+function splitMessage (rawMessage,prop){
+    return rawMessage[prop].map(function(id){
+        var message = _.cloneDeep(rawMessage);
+        message[prop] = id;
+        return message;
+    })
+}
 
 wss.on('connection', function (socket) {
 	auth.verify(socket)
@@ -86,7 +109,6 @@ function initPingPong(socket){
     var interval = setInterval(function(){
         socket.ping();
         pingTimes++;
-        socket.close(3000);
         if(pingTimes>3){
             clearInterval(interval);
             socket.close();
