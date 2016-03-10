@@ -71,7 +71,8 @@ function onConnect(socket) {
 	socket.id = uuid.v4();
 	logger.info("UserId:" + socket.UserId + "##" + "SessionId:" + socket.id + '  connected');
 	//把SocketId发送到客户端，作为SessionId
-	socket.send(socket.id);
+    var wsIdMessage = {EventName:'GenerateWSSessionId',WSSessionId:socket.id}
+	socket.send(JSON.stringify(wsIdMessage));
     //保存客户端连接到缓存
 	cache.save(socket);
 
