@@ -29,11 +29,34 @@ server.listen(app.get('port'), function () {
     util.subscribe(Const.CHANNEL).then(function (client) {
         client.on('message', function (channel, messageStr) {
             logger.info('receive message:', messageStr);
-            message = JSON.parse(messageStr);
-            onMessage(message);
+            var rawMessage = JSON.parse(messageStr);
+            var messages;
+            if(rawMessage.SessionId){
+                messages = splitMessage(rawMessage,'SessionId');
+            }else if(rawMessage.UserId){
+                messages = splitMessage(rawMessage, 'UserId');
+            }else if(rawMessage.ProjectId){
+                messages = splitMessage(rawMessage, 'ProjectId');
+            }else if(rawMessage.CompanyId){
+                messages = splitMessage(rawMessage, 'CompanyId');
+            }else if(rawMessage.AllUser){
+                messages = [rawMessage];
+            }
+
+            messages.forEach(function(message){
+                onMessage(message);
+            });
         })
     });
 });
+
+function splitMessage (rawMessage,prop){
+    return rawMessage[prop].map(function(id){
+        var message = _.cloneDeep(rawMessage);
+        message[prop] = id;
+        return message;
+    })
+}
 
 wss.on('connection', function (socket) {
 	auth.verify(socket)
@@ -48,24 +71,26 @@ function onConnect(socket) {
 	socket.id = uuid.v4();
 	logger.info("UserId:" + socket.UserId + "##" + "SessionId:" + socket.id + '  connected');
 	//把SocketId发送到客户端，作为SessionId
-
-	socket.send(socket.id);
+    var wsIdMessage = {EventName:'GenerateWSSessionId',WSSessionId:socket.id}
+	socket.send(JSON.stringify(wsIdMessage));
+    //保存客户端连接到缓存
 	cache.save(socket);
 
-	socket.on('open', function open() {
-		console.log("opened");
-	});
-
-	socket.on('close', function close() {
-		logger.info("UserId:" + socket.UserId + "##" + "SessionId:" + socket.id + '  closed');
+    var interval = initPingPong(socket);
+	socket.on('close', function close(code) {
+		logger.info("UserId:" + socket.UserId + " ## " + "SessionId:" + socket.id + '  closed ## error_code:'+code);
+        clearInterval(interval);
 		cache.remove(socket);
 	});
 
 	socket.on('message', function message(data, flags) {
-        socket.send('pong');
-		console.log("receive message", arguments);
-        console.log("send pong");
+        console.log(arguments);
 	});
+
+    socket.on('error', function(error){
+        logger.error(error);
+    });
+
 
 	//新连接建立,从 持久消息缓存(存储在redis)中取出需要发给此用户的所有消息,发送到客户端
 	messageDao.getConnMessages(socket)
@@ -76,6 +101,26 @@ function onConnect(socket) {
 		}, function (error) {
 			logger.error(error);
 		});
+}
+
+//初始化ping/pong机制，服务端每隔5s向浏览器发ping、浏览器自动返回pong 若超过3次发出ping没收到pong，则断开连接
+function initPingPong(socket){
+    //发出ping而未收到pong的次数
+    var pingTimes = 0;
+    var interval = setInterval(function(){
+        socket.ping();
+        pingTimes++;
+        if(pingTimes>3){
+            clearInterval(interval);
+            socket.close();
+        }
+    },5000)
+
+    socket.on('pong',function(){
+        pingTimes=0;
+    })
+
+    return interval;
 }
 
 function onMessage(message) {
